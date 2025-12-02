@@ -12,6 +12,12 @@ module.exports = {
     solidity: {
         compilers: [{ version: '0.8.19' }]
     },
+    paths: {
+        sources: './src',
+        tests: './test',
+        cache: './cache',
+        artifacts: './artifacts'
+    },
     networks: {
         hardhat: {
             chainId: 1337
