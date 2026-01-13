@@ -1,0 +1,39 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-d6312c27fedca1df2afefe3631312f1cec6f5965",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/Donation.sol": "project/contracts/Donation.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": []
+    },
+    "sources": {
+      "project/contracts/Donation.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.28;\r\n\r\ncontract Donation {\r\n    struct Campaign {\r\n        address payable owner;\r\n        uint256 goalAmount;\r\n        uint256 raisedAmount;\r\n        bool isActive;\r\n    }\r\n\r\n    mapping(uint256 => Campaign) public campaigns;\r\n    uint256 public nextCampaignId;\r\n\r\n    event CampaignCreated(\r\n        uint256 indexed campaignId,\r\n        address indexed owner,\r\n        uint256 goalAmount\r\n    );\r\n\r\n    event Donated(\r\n        uint256 indexed campaignId,\r\n        address indexed donor,\r\n        uint256 amount\r\n    );\r\n\r\n    event Withdrawn(\r\n        uint256 indexed campaignId,\r\n        address indexed owner,\r\n        uint256 amount\r\n    );\r\n\r\n    modifier onlyOwner(uint256 _campaignId) {\r\n        require(\r\n            campaigns[_campaignId].owner == msg.sender,\r\n            \"Not campaign owner\"\r\n        );\r\n        _;\r\n    }\r\n\r\n    modifier campaignActive(uint256 _campaignId) {\r\n        require(campaigns[_campaignId].isActive, \"Campaign not active\");\r\n        _;\r\n    }\r\n\r\n    function createCampaign(uint256 _goalAmount) external returns (uint256) {\r\n        require(_goalAmount > 0, \"Goal must be > 0\");\r\n\r\n        uint256 campaignId = nextCampaignId;\r\n        campaigns[campaignId] = Campaign({\r\n            owner: payable(msg.sender),\r\n            goalAmount: _goalAmount,\r\n            raisedAmount: 0,\r\n            isActive: true\r\n        });\r\n\r\n        nextCampaignId++;\r\n\r\n        emit CampaignCreated(campaignId, msg.sender, _goalAmount);\r\n        return campaignId;\r\n    }\r\n\r\n    function donate(uint256 _campaignId)\r\n        external\r\n        payable\r\n        campaignActive(_campaignId)\r\n    {\r\n        require(msg.value > 0, \"Amount must be > 0\");\r\n        Campaign storage campaign = campaigns[_campaignId];\r\n\r\n        campaign.raisedAmount += msg.value;\r\n\r\n        emit Donated(_campaignId, msg.sender, msg.value);\r\n    }\r\n\r\n    function withdraw(uint256 _campaignId)\r\n        external\r\n        onlyOwner(_campaignId)\r\n        campaignActive(_campaignId)\r\n    {\r\n        Campaign storage campaign = campaigns[_campaignId];\r\n        uint256 amount = campaign.raisedAmount;\r\n        require(amount > 0, \"Nothing to withdraw\");\r\n\r\n        campaign.raisedAmount = 0;\r\n        campaign.isActive = false;\r\n\r\n        (bool success, ) = campaign.owner.call{value: amount}(\"\");\r\n        require(success, \"Transfer failed\");\r\n\r\n        emit Withdrawn(_campaignId, msg.sender, amount);\r\n    }\r\n\r\n    function getCampaign(uint256 _campaignId)\r\n        external\r\n        view\r\n        returns (\r\n            address owner,\r\n            uint256 goalAmount,\r\n            uint256 raisedAmount,\r\n            bool isActive\r\n        )\r\n    {\r\n        Campaign storage c = campaigns[_campaignId];\r\n        return (c.owner, c.goalAmount, c.raisedAmount, c.isActive);\r\n    }\r\n}\r\n"
+      }
+    }
+  }
+}
