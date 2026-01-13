@@ -1,16 +1,15 @@
-import { useContext } from 'react';
-import { AuthContext } from '../../context/AuthContext';
+import { useWeb3Context } from '../../context/Web3Context';
 import { Navigate } from 'react-router-dom';
 
 const ProtectedRoute = ({ children }) => {
-    const { user, loading } = useContext(AuthContext);
+    const { account, loading } = useWeb3Context();
 
     if (loading) {
         return <div>Loading...</div>;
     }
 
-    if (!user) {
-        return <Navigate to="/login" replace />;
+    if (!account) {
+        return <Navigate to="/" replace />; // Redirect to home instead of login
     }
 
     return children;
