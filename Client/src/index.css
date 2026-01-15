@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+:root {
+    --primary: #d40d2b;
+    --primary-dark: #7b0414;
+    --accent: #fd6f77;
+}
+
+/* theme helpers */
+.bg-primary {
+    background-color: var(--primary) !important;
+}
+
+.text-primary {
+    color: var(--primary) !important;
+}
+
+.bg-primary-10 {
+    background-color: rgba(212, 13, 43, 0.08) !important;
+}
+
+.bg-accent-20 {
+    background-color: rgba(253, 111, 119, 0.2) !important;
+}
+
+.hover-bg-primary-30:hover {
+    background-color: rgba(123, 4, 20, 0.3) !important;
+}
+
+.hover-text-accent:hover {
+    color: var(--accent) !important;
+}
+
+.bg-progress-gradient {
+    background: linear-gradient(90deg, var(--accent), var(--primary)) !important;
+}
+
+.hover-bg-primary-dark:hover {
+    background-color: var(--primary-dark) !important;
+}
+
+.bg-left-gradient {
+    background: linear-gradient(180deg, var(--primary), var(--accent)) !important;
+}

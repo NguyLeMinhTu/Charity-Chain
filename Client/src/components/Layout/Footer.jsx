@@ -5,25 +5,24 @@ const Footer = () => {
     const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
     return (
-        <footer className="bg-gray-900 text-white/90 pt-10 pb-6 mt-12 border-t border-white/5">
+        <footer className="bg-primary text-white/90 pt-10 pb-6 mt-12 border-t border-white/5">
             <div className="container mx-auto px-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
                     {/* Brand */}
                     <div className="flex flex-col gap-4">
                         <div className="flex items-center gap-3">
-                            <img src={logo} alt="T7 Logo" className="h-12 w-12 rounded-full shadow-sm ring-2 ring-white/10" />
+                            <img src={logo} alt="VIECHA Logo" className="h-12 w-12 rounded-full shadow-sm ring-2 ring-white/10" />
                             <div>
-                                <div className="text-lg font-extrabold tracking-tight">T7 - Charity</div>
-                                <div className="text-xs text-white/60">Connecting donors with transparent campaigns</div>
+                                <div className="text-lg text-white font-extrabold tracking-tight">VIECHA</div>
+                                <div className="text-xs text-white">Kết nối nhà hảo tâm với các chiến dịch minh bạch</div>
                             </div>
                         </div>
-                        <p className="text-sm text-white/60 max-w-sm">T7 - Charity is a community-driven platform that helps creators and organizations raise funds transparently using blockchain-powered donations.</p>
-                        <button onClick={scrollToTop} className="mt-2 w-max text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-md">Back to top</button>
+                        <p className="text-sm text-white max-w-sm">VIECHA là một nền tảng do cộng đồng điều hành, giúp các nhà sáng tạo và tổ chức gây quỹ một cách minh bạch thông qua các khoản quyên góp được hỗ trợ bởi blockchain mạng Cronos</p>
                     </div>
 
                     {/* Quick links */}
                     <div>
-                        <h4 className="font-semibold mb-3">Quick Links</h4>
+                        <h4 className="font-semibold mb-3">Liên kết nhanh</h4>
                         <ul className="flex flex-col gap-2 text-sm text-white/70">
                             <li><Link to="/" className="hover:text-white">Trang chủ</Link></li>
                             <li><Link to="/campaigns" className="hover:text-white">Chiến dịch</Link></li>
@@ -35,10 +34,10 @@ const Footer = () => {
                     {/* Contact */}
                     <div>
                         <h4 className="font-semibold mb-3">Liên hệ</h4>
-                        <div className="text-sm text-white/70 flex flex-col gap-2">
-                            <div>Email: <a href="mailto:hello@t7-charity.org" className="hover:text-white">hello@t7-charity.org</a></div>
+                        <div className="text-sm text-white flex flex-col gap-2">
+                            <div>Email: <a href="mailto:hello@t7-charity.org" className="hover:text-white">viecha@gmail.com</a></div>
                             <div>Số điện thoại: <a href="tel:+84900000000" className="hover:text-white">+84 900 000 000</a></div>
-                            <div>Địa chỉ: Hà Nội, Việt Nam</div>
+                            <div>Địa chỉ: Trường Đại học Nam Cần Thơ, Nguyễn Văn Cừ nd, Cần Thơ, Việt Nam</div>
                         </div>
                     </div>
 
@@ -62,13 +61,13 @@ const Footer = () => {
                                 </svg>
                             </a>
                         </div>
-                        <p className="text-xs text-white/50 mt-4">Follow us for updates and new campaigns.</p>
+                        <p className="text-xs text-white/50 mt-4">Theo dõi VieCha để cập nhật các chiến dịch sớm nhất</p>
                     </div>
                 </div>
 
-                <div className="mt-8 border-t border-white/5 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <p className="text-sm text-white/60">&copy; 2025 T7 - Charity. All rights reserved.</p>
-                    <div className="text-sm text-white/60">Made with ❤️ by T7 Team</div>
+                <div className="mt-8 border-t border-white pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p className="text-sm text-white">&copy; 2025 VIECHA. All rights reserved.</p>
+                    <div className="text-sm text-white">Phát triển bởi Team7-BlockChain</div>
                 </div>
             </div>
         </footer>

@@ -10,6 +10,7 @@ import ProtectedRoute from './components/Common/ProtectedRoute';
 import AuthProtectedRoute from './components/Common/AuthProtectedRoute';
 import AdminLogin from './pages/AdminLogin';
 import AdminProtectedRoute from './components/Common/AdminProtectedRoute';
+import AdminCampaigns from './pages/AdminCampaigns';
 import Layout from './components/Layout/Layout';
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
         />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin/create" element={<AdminProtectedRoute><CreateCampaign /></AdminProtectedRoute>} />
+        <Route path="/admin/campaigns" element={<AdminProtectedRoute><AdminCampaigns /></AdminProtectedRoute>} />
         <Route path="/profile" element={<AuthProtectedRoute><Profile /></AuthProtectedRoute>} />
         <Route
           path="/me/donations"

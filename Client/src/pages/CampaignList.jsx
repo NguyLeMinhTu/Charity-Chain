@@ -43,7 +43,7 @@ const CampaignList = () => {
         <div className="container mx-auto px-4 py-8">
             <h1 className="text-3xl font-bold mb-8 text-center">Chiến dịch Quyên góp</h1>
             <div className="flex items-center justify-center gap-3 mb-6">
-                <button onClick={() => setFilter('all')} className={`px-3 py-2 rounded ${filter === 'all' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>Tất cả</button>
+                <button onClick={() => setFilter('all')} className={`px-3 py-2 rounded ${filter === 'all' ? 'bg-primary text-white' : 'bg-gray-100'}`}>Tất cả</button>
                 <button onClick={() => setFilter('active')} className={`px-3 py-2 rounded ${filter === 'active' ? 'bg-green-600 text-white' : 'bg-gray-100'}`}>Đang hoạt động</button>
                 <button onClick={() => setFilter('closed')} className={`px-3 py-2 rounded ${filter === 'closed' ? 'bg-red-600 text-white' : 'bg-gray-100'}`}>Đã đóng</button>
             </div>

@@ -8,7 +8,7 @@ const CreateCampaign = () => {
         title: '',
         description: '',
         goalAmount: '',
-        chainId: 1,
+        chainId: 338,
         startDate: '',
         endDate: ''
     });
@@ -56,14 +56,18 @@ const CreateCampaign = () => {
             }
 
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/campaigns', submitData, {
+            const { data } = await axios.post(import.meta.env.VITE_API_BASE_URL + '/campaigns', submitData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data'
                 }
             });
 
-            toast.success('Chiến dịch đã được tạo thành công!');
+            if (data.approvalStatus === 'pending') {
+                toast.success('Chiến dịch đã được tạo và đang chờ admin phê duyệt');
+            } else {
+                toast.success('Chiến dịch đã được tạo thành công!');
+            }
             navigate('/campaigns');
         } catch (err) {
             const errorMsg = err.response?.data?.message || 'Không thể tạo chiến dịch';
@@ -113,7 +117,7 @@ const CreateCampaign = () => {
 
                     <div className="mb-6">
                         <label className="block text-gray-700 text-sm font-bold mb-2" htmlFor="goalAmount">
-                            Mục tiêu quyên góp (ETH) *
+                            Mục tiêu quyên góp (T7) *
                         </label>
                         <input
                             type="number"
