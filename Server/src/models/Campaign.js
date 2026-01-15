@@ -14,8 +14,10 @@ const campaignSchema = new mongoose.Schema(
         raisedAmount: { type: Number, default: 0 },
         // Chủ sở hữu chiến dịch
         owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        // Trạng thái chiến dịch: 'fundraising' = Đang gây quỹ, 'stopped' = Ngừng gây quỹ
-        status: { type: String, enum: ['fundraising', 'stopped', 'active', 'closed'], default: 'fundraising' },
+        // Trạng thái chiến dịch: 'fundraising' = Đang gây quỹ, 'stopped' = Ngừng gây quỹ, 'completed' = Đã hoàn thành
+        status: { type: String, enum: ['fundraising', 'stopped', 'active', 'closed', 'completed'], default: 'fundraising' },
+        // Approval workflow: 'pending' = chờ phê duyệt, 'approved' = hiển thị, 'rejected' = bị từ chối
+        approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'approved' },
         // Thông tin trên blockchain
         chainId: { type: Number },
         // Địa chỉ hợp đồng thông minh của chiến dịch

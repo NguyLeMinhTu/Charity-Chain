@@ -95,3 +95,41 @@ exports.linkWallet = async (req, res) => {
         res.status(500).json({ message: 'Error linking wallet', error: err.message });
     }
 };
+
+exports.unlinkWallet = async (req, res) => {
+    try {
+        req.user.walletAddress = null;
+        await req.user.save();
+        res.json({ user: req.user });
+    } catch (err) {
+        res.status(500).json({ message: 'Error unlinking wallet', error: err.message });
+    }
+};
+
+// Update profile (name, email, password, walletAddress)
+exports.updateProfile = async (req, res) => {
+    try {
+        const { name, email, password, walletAddress } = req.body;
+
+        // If email changed, ensure uniqueness
+        if (email && email !== req.user.email) {
+            const exists = await User.findOne({ email });
+            if (exists) return res.status(400).json({ message: 'Email already used' });
+            req.user.email = email;
+        }
+
+        if (name) req.user.name = name;
+        if (typeof walletAddress !== 'undefined') req.user.walletAddress = walletAddress || null;
+        if (password) {
+            if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
+            req.user.password = password; // will be hashed by pre-save hook
+        }
+
+        await req.user.save();
+        // return sanitized user
+        const user = await User.findById(req.user._id).select('-password');
+        res.json({ user });
+    } catch (err) {
+        res.status(500).json({ message: 'Error updating profile', error: err.message });
+    }
+};
