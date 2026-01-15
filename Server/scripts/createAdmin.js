@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+// createAdmin.js - Script để tạo người dùng quản trị mới trong hệ thống.
+// Sử dụng: node scripts/createAdmin.js --email <email> --password <password> [--name <name>]
+
 require('dotenv').config();
 const mongoose = require('mongoose');
 const connectDB = require('../src/config/db');
 const User = require('../src/models/User');
 
-// simple CLI args parser (no external deps)
+// Phân tích đối số dòng lệnh
 const rawArgs = process.argv.slice(2);
 const argv = {};
 for (let i = 0; i < rawArgs.length; i++) {
@@ -28,6 +31,7 @@ if (!argv.email || !argv.password) {
 
 argv.name = argv.name || 'Admin';
 
+// Kết nối đến DB và tạo người dùng quản trị
 const run = async () => {
     try {
         await connectDB();
