@@ -39,7 +39,7 @@ const MyCampaigns = () => {
         <div className="container mx-auto p-6">
             <div className="flex items-center justify-between mb-6">
                 <h1 className="text-2xl font-semibold">Chiến dịch của bạn</h1>
-                <Link to="/campaigns/create" className="px-4 py-2 bg-indigo-600 text-white rounded">Tạo chiến dịch mới</Link>
+                <Link to="/campaigns/create" className="px-4 py-2 bg-primary text-white rounded">Tạo chiến dịch mới</Link>
             </div>
 
             {campaigns.length === 0 ? (

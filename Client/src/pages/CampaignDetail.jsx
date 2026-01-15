@@ -1,7 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { AuthContext } from '../context/AuthContext';
+import { campaignApi } from '../services/api/campaignApi';
+import { useNavigate } from 'react-router-dom';
+import { useWeb3Context } from '../context/Web3Context';
+import { getT7Contract } from '../services/web3/t7Token';
+import { donationApi } from '../services/api/donationApi';
+import { ethers } from 'ethers';
+import Team7Json from '../../Team7.json';
 
 const CampaignDetail = () => {
     const { id } = useParams();
@@ -9,6 +17,12 @@ const CampaignDetail = () => {
     const [donations, setDonations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [editing, setEditing] = useState(false);
+    const [formData, setFormData] = useState({});
+    const [imageFile, setImageFile] = useState(null);
+    const { user } = useContext(AuthContext);
+    const { account, signer, connect } = useWeb3Context();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchCampaign = async () => {
@@ -18,6 +32,14 @@ const CampaignDetail = () => {
                     axios.get(`http://localhost:5000/api/donations/campaign/${id}`)
                 ]);
                 setCampaign(campaignRes.data);
+                setFormData({
+                    title: campaignRes.data.title || '',
+                    description: campaignRes.data.description || '',
+                    goalAmount: campaignRes.data.goalAmount || '',
+                    chainId: campaignRes.data.chainId || '',
+                    startDate: campaignRes.data.startDate ? new Date(campaignRes.data.startDate).toISOString().slice(0, 16) : '',
+                    endDate: campaignRes.data.endDate ? new Date(campaignRes.data.endDate).toISOString().slice(0, 16) : ''
+                });
                 setDonations(donationsRes.data);
             } catch (err) {
                 const errorMsg = 'Không thể tải chi tiết chiến dịch';
@@ -34,7 +56,12 @@ const CampaignDetail = () => {
     if (error) return <div className="text-center py-8 text-red-500">{error}</div>;
     if (!campaign) return <div className="text-center py-8">Campaign not found</div>;
 
-    const totalDonated = donations.reduce((sum, d) => sum + d.amount, 0);
+    const totalDonated = donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+    const now = new Date();
+    const campaignEnd = campaign.endDate ? new Date(campaign.endDate) : null;
+    const isEnded = campaignEnd ? campaignEnd < now : false;
+    const goalAmountNum = Number(campaign.goalAmount) || 0;
+    const isGoalMet = goalAmountNum > 0 ? totalDonated >= goalAmountNum : false;
 
     return (
         <div className="container mx-auto px-4 py-8">
@@ -55,11 +82,11 @@ const CampaignDetail = () => {
                         <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6">
                             <div className="grid grid-cols-3 gap-4 text-center">
                                 <div>
-                                    <div className="text-2xl font-bold text-green-600">{totalDonated} ETH</div>
+                                    <div className="text-2xl font-bold text-green-600">{totalDonated} T7</div>
                                     <div className="text-sm text-gray-500">Đã quyên góp</div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-blue-600">{campaign.goalAmount} ETH</div>
+                                    <div className="text-2xl font-bold text-blue-600">{campaign.goalAmount} T7</div>
                                     <div className="text-sm text-gray-500">Mục tiêu</div>
                                 </div>
                                 <div>
@@ -81,11 +108,140 @@ const CampaignDetail = () => {
                             </div>
 
                             <div className="mt-6">
-                                <button className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg text-lg font-semibold transition-colors">
+                                <button disabled={isEnded || isGoalMet} onClick={async () => {
+                                    if (isEnded) {
+                                        toast.error('Chiến dịch đã kết thúc, không thể quyên góp.');
+                                        return;
+                                    }
+                                    if (isGoalMet) {
+                                        toast.error('Chiến dịch đã đạt mục tiêu, không thể quyên góp thêm.');
+                                        return;
+                                    }
+                                    try {
+                                        const amt = window.prompt('Nhập số lượng T7 muốn quyên góp');
+                                        if (!amt) return;
+                                        const num = Number(amt);
+                                        if (Number.isNaN(num) || num <= 0) {
+                                            toast.error('Số tiền không hợp lệ');
+                                            return;
+                                        }
+
+                                        // ensure wallet connected
+                                        let s = signer;
+                                        if (!s || !account) {
+                                            await connect();
+                                            // after connect, try to read signer from context (rehydration may be async)
+                                            // simplest: get signer from window provider
+                                            const provider = new ethers.BrowserProvider(window.ethereum);
+                                            s = await provider.getSigner();
+                                        }
+
+                                        const ownerWallet = campaign.owner?.walletAddress;
+                                        if (!ownerWallet) {
+                                            toast.error('Người nhận chưa liên kết ví');
+                                            return;
+                                        }
+
+                                        const t7 = getT7Contract(s);
+                                        let decimals = 18;
+                                        try { decimals = await t7.decimals(); } catch (e) { /* default */ }
+                                        const value = ethers.parseUnits(num.toString(), decimals);
+
+                                        toast.loading('Đang gửi giao dịch MetaMask...');
+                                        const tx = await t7.transfer(ownerWallet, value);
+                                        const receipt = await tx.wait();
+                                        toast.dismiss();
+                                        toast.success('Giao dịch gửi thành công');
+
+                                        // record donation in backend (requires auth)
+                                        try {
+                                            await donationApi.createDonation({
+                                                campaign: campaign._id,
+                                                amount: num,
+                                                donorWallet: account || null,
+                                                txHash: receipt.transactionHash || tx.hash,
+                                                tokenAddress: Team7Json.address,
+                                                tokenSymbol: 'T7'
+                                            });
+                                        } catch (err) {
+                                            console.error('Failed to record donation', err);
+                                        }
+
+                                        // refresh donations and campaign data so progress updates
+                                        const [dres, cres] = await Promise.all([
+                                            axios.get(`http://localhost:5000/api/donations/campaign/${id}`),
+                                            axios.get(`http://localhost:5000/api/campaigns/${id}`)
+                                        ]);
+                                        setDonations(dres.data);
+                                        setCampaign(cres.data);
+                                    } catch (err) {
+                                        toast.dismiss();
+                                        console.error(err);
+                                        toast.error(err?.message || 'Lỗi khi quyên góp');
+                                    }
+                                }} className="w-full bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded-lg text-lg font-semibold transition-colors">
                                     Quyên góp ngay
                                 </button>
                             </div>
                         </div>
+
+                        {/* Edit/Delete buttons for owner or admin */}
+                        {user && (user.role === 'admin' || (campaign.owner && campaign.owner._id === user._id)) && (
+                            <div className="flex gap-3 mt-4">
+                                <button onClick={() => setEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Sửa chiến dịch</button>
+                                <button onClick={async () => {
+                                    if (!confirm('Bạn có chắc muốn xóa chiến dịch này?')) return;
+                                    try {
+                                        const token = localStorage.getItem('token');
+                                        await campaignApi.deleteCampaign(campaign._id);
+                                        toast.success('Đã xóa chiến dịch');
+                                        navigate('/campaigns');
+                                    } catch (err) {
+                                        toast.error(err.response?.data?.message || 'Lỗi khi xóa chiến dịch');
+                                    }
+                                }} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Xóa</button>
+                            </div>
+                        )}
+
+                        {/* Edit form modal (simple inline) */}
+                        {editing && (
+                            <div className="mt-6 bg-white p-6 rounded shadow">
+                                <h3 className="text-lg font-semibold mb-4">Sửa chiến dịch</h3>
+                                <div className="grid grid-cols-1 gap-4">
+                                    <input name="title" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="border p-2 rounded" />
+                                    <textarea name="description" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="border p-2 rounded" />
+                                    <input name="goalAmount" type="number" value={formData.goalAmount} onChange={(e) => setFormData({ ...formData, goalAmount: e.target.value })} className="border p-2 rounded" />
+                                    <input name="chainId" type="number" value={formData.chainId} onChange={(e) => setFormData({ ...formData, chainId: e.target.value })} className="border p-2 rounded" />
+                                    <div>
+                                        <label className="block text-sm">Hình ảnh mới</label>
+                                        <input type="file" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={async () => {
+                                            try {
+                                                const submit = new FormData();
+                                                submit.append('title', formData.title);
+                                                submit.append('description', formData.description);
+                                                submit.append('goalAmount', formData.goalAmount);
+                                                submit.append('chainId', formData.chainId);
+                                                if (formData.startDate) submit.append('startDate', formData.startDate);
+                                                if (formData.endDate) submit.append('endDate', formData.endDate);
+                                                if (imageFile) submit.append('image', imageFile);
+                                                await campaignApi.updateCampaign(campaign._id, submit);
+                                                toast.success('Cập nhật thành công');
+                                                // refresh
+                                                const res = await axios.get(`http://localhost:5000/api/campaigns/${id}`);
+                                                setCampaign(res.data);
+                                                setEditing(false);
+                                            } catch (err) {
+                                                toast.error(err.response?.data?.message || 'Lỗi khi cập nhật');
+                                            }
+                                        }} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded">Lưu</button>
+                                        <button onClick={() => setEditing(false)} className="bg-gray-200 px-4 py-2 rounded">Hủy</button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <h2 className="text-xl font-semibold mb-3">Người tạo</h2>
@@ -115,7 +271,7 @@ const CampaignDetail = () => {
                                             </div>
                                             <div className="text-sm text-gray-500">{new Date(donation.createdAt).toLocaleString()}</div>
                                         </div>
-                                        <div className="text-lg font-bold text-green-600">{donation.amount} ETH</div>
+                                        <div className="text-lg font-bold text-green-600">{donation.amount} T7</div>
                                     </div>
                                     {donation.txHash && (
                                         <div className="text-sm text-gray-500 mt-2">Tx: {donation.txHash.slice(0, 10)}...{donation.txHash.slice(-8)}</div>

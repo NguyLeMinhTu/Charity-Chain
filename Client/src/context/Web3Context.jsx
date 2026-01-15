@@ -1,3 +1,5 @@
+// Client/src/context/Web3Context.jsx - Context quản lý kết nối Web3 và trạng thái ví người dùng.
+
 import { createContext, useContext, useState, useEffect } from 'react';
 import { connectWallet, getWeb3Provider } from '../services/web3/web3Provider';
 import { getT7Balance } from '../services/web3/t7Token';
@@ -13,8 +15,39 @@ export const Web3Provider = ({ children }) => {
     useEffect(() => {
         const savedAccount = localStorage.getItem('walletAccount');
         if (savedAccount) {
-            setAccount(savedAccount);
-            // cannot fetch signer without user interaction; balance will load on connect
+            // Dịch vụ này có thể không thành công nếu người dùng đã thu hồi quyền truy cập.
+            (async () => {
+                try {
+                    const provider = getWeb3Provider();
+                    // try to get signer if permission exists
+                    try {
+                        const s = await provider.getSigner();
+                        const address = await s.getAddress();
+                        if (address && address.toLowerCase() === savedAccount.toLowerCase()) {
+                            setSigner(s);
+                            setAccount(address);
+                        } else {
+                            setAccount(savedAccount);
+                        }
+                        // fetch balance using provider (works read-only) or signer
+                        const balance = await getT7Balance(provider, savedAccount);
+                        setT7Balance(balance);
+                    } catch (err) {
+                        // signer not available but still try to fetch balance via provider
+                        try {
+                            const balance = await getT7Balance(provider, savedAccount);
+                            setAccount(savedAccount);
+                            setT7Balance(balance);
+                        } catch (e) {
+                            console.error('Failed to rehydrate web3 state', e);
+                        }
+                    }
+                } catch (err) {
+                    // provider not available
+                    console.error('No web3 provider during rehydrate', err);
+                    setAccount(savedAccount);
+                }
+            })();
         }
     }, []);
 

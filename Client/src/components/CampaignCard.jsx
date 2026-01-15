@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
+import { Eye } from 'lucide-react';
 
 const CampaignCard = ({ campaign }) => {
     const formatNumber = (v) => {
@@ -11,53 +13,75 @@ const CampaignCard = ({ campaign }) => {
     const raised = Number(campaign.raisedAmount ?? campaign.raised ?? 0) || 0;
     const progress = goal > 0 ? Math.min(100, Math.round((raised / goal) * 100)) : 0;
 
+    const { user } = useContext(AuthContext);
+
+    const isOwnerOrAdmin = user && (user.role === 'admin' || (campaign.owner && campaign.owner._id === user._id));
+
     return (
-        <article className="max-w-sm bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transform hover:-translate-y-1 transition-all">
-            <div className="h-40 w-full bg-gray-100 overflow-hidden">
+        <article className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-xl transform hover:-translate-y-1 transition-all">
+            {/* Header (image + title) */}
+            <div className="relative h-52 w-full bg-gray-100">
                 {campaign.imageUrl ? (
-                    <img src={campaign.imageUrl} alt={campaign.title} className="w-full h-full object-cover" />
+                    <img src={campaign.imageUrl} alt={campaign.title} className="w-full h-full object-cover opacity-80" />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
                 )}
-            </div>
-            <div className="p-4">
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">{campaign.title}</h2>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-3">{campaign.description}</p>
 
-                <div className="mb-3">
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                        <div className="bg-gradient-to-r from-green-400 to-green-600 h-2" style={{ width: `${progress}%` }} />
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                        <span>{formatNumber(raised)} ETH quyên góp</span>
-                        <span>{progress}%</span>
-                    </div>
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+
+                {/* Status badge top-left */}
+                <div className="absolute top-3 left-3">
+                    {(() => {
+                        const s = (campaign.status || '').toLowerCase();
+                        const isActive = ['fundraising', 'active'].includes(s);
+                        const isClosed = ['stopped', 'closed'].includes(s);
+                        const isCompleted = s === 'completed';
+                        const label = isCompleted ? 'Đã hoàn thành' : isActive ? 'Đang hoạt động' : isClosed ? 'Đã đóng' : (campaign.approvalStatus === 'pending' ? 'Chờ duyệt' : campaign.status || '');
+                        const cls = isCompleted ? 'bg-emerald-600 text-white' : isActive ? 'bg-primary text-white' : isClosed ? 'bg-red-600 text-white' : 'bg-yellow-500 text-white';
+                        return label ? <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${cls}`}>{label}</span> : null;
+                    })()}
                 </div>
 
-                <div className="flex items-center justify-between mb-4">
-                    <div>
-                        <div className="text-sm text-gray-500">Mục tiêu</div>
-                        <div className="text-green-600 font-semibold">{formatNumber(goal)} ETH</div>
+                {/* Title */}
+                <div className="absolute left-4 bottom-4 right-4">
+                    <h3 className="text-white text-lg font-bold leading-tight truncate drop-shadow-sm">{campaign.title}</h3>
+                </div>
+            </div>
+
+            {/* Body */}
+            <div className="p-4 space-y-3">
+                <p className="text-sm text-gray-700 line-clamp-3">{campaign.description}</p>
+
+                <div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div className="bg-progress-gradient h-2" style={{ width: `${progress}%` }} />
                     </div>
-                    <div>
-                        {(() => {
-                            const s = campaign.status;
-                            const isActive = ['fundraising', 'active'].includes(s);
-                            const isClosed = ['stopped', 'closed'].includes(s);
-                            const label = isActive ? 'Đang hoạt động' : isClosed ? 'Đã đóng' : s;
-                            const cls = isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-                            return (
-                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${cls}`}>
-                                    {label}
-                                </span>
-                            );
-                        })()}
+                    <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
+                        <div className="font-medium text-gray-800">{formatNumber(raised)} T7</div>
+                        <div className="text-sm text-gray-500">{progress}%</div>
                     </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-500">Bởi: <span className="text-gray-800 font-medium">{campaign.owner?.name || 'Unknown'}</span></div>
-                    <Link to={`/campaigns/${campaign._id}`} className="ml-4 inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm">Xem chi tiết</Link>
+                    <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center text-sm font-semibold text-gray-700">
+                            {campaign.owner?.avatar ? (
+                                <img src={campaign.owner.avatar} alt={campaign.owner.name} className="h-full w-full object-cover" />
+                            ) : (
+                                (campaign.owner?.name || 'U').charAt(0).toUpperCase()
+                            )}
+                        </div>
+                        <div className="text-sm">
+                            <div className="text-gray-800 font-medium">{campaign.owner?.name || 'Unknown'}</div>
+                            <div className="text-xs text-gray-500">Mục tiêu: <span className="text-primary font-semibold">{formatNumber(goal)} T7</span></div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Link to={`/campaigns/${campaign._id}`} className="inline-flex items-center gap-2 bg-primary hover-bg-primary-dark text-white px-4 py-2 rounded-lg text-sm font-semibold">
+                            <Eye className="w-4 h-4" />
+                        </Link>
+                    </div>
                 </div>
             </div>
         </article>

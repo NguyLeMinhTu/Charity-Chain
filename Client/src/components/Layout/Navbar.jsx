@@ -34,6 +34,12 @@ const Navbar = () => {
     };
 
     const handleLogout = () => {
+        // also clear web3 wallet state so UI doesn't show connected wallet after logout
+        try {
+            disconnect();
+        } catch (e) {
+            // ignore if disconnect not available
+        }
         logout();
         toast.success('Đã đăng xuất');
         navigate('/');
@@ -87,88 +93,74 @@ const Navbar = () => {
 
     return (
         <>
-            <div className="bg-gray-900 text-white text-center py-1/2 text-sm">KẾT NỐI NHÀ TÀI TRỢ ĐẾN CÁC CHIẾN DỊCH MINH BẠCH</div>
-            <header className="bg-gradient-to-r from-indigo-600 via-violet-800 to-pink-600 text-white sticky top-0 z-50 shadow-lg backdrop-blur">
+            <header className="bg-primary text-white sticky top-0 z-50 shadow-lg backdrop-blur">
                 <div className="container mx-auto px-6 py-4 flex items-center justify-between">
 
-                    {/* Logo và tiêu đề */}
+                    {/* Logo */}
                     <Link to="/" className="flex items-center gap-4">
-                        <img src={logo} alt="T7 Logo" className="h-14 w-14 rounded-full shadow-lg ring-2 ring-white/30" />
-                        <div>
-                            <div className="text-2xl via-violet-500 font-extrabold tracking-tight">T7 - CHARITY</div>
-                        </div>
+                        <img src={logo} alt="VIECHA Logo" className="h-14 w-14 rounded-full shadow-lg ring-2 ring-purple-200" />
+                        <span className="text-2xl font-bold text-white">VIECHA</span>
                     </Link>
 
                     {/* Khu vưc điều hướng chính */}
                     <nav className="hidden lg:flex items-center gap-10">
-                        <Link to="/" className="text-white/90 text-xl hover:text-white transition font-medium">Trang chủ</Link>
-                        <Link to="/campaigns" className="text-white/90 text-xl hover:text-white transition font-medium">Chiến dịch</Link>
-                        <Link to="/me/donations" className="text-white/90 text-xl hover:text-white transition font-medium">Quyên góp của tôi</Link>
+                        <Link to="/" className="text-white/90 text-base hover-text-accent transition font-bold">Trang chủ</Link>
+                        <Link to="/campaigns" className="text-white/90 text-base hover-text-accent transition font-bold">Chiến dịch</Link>
+                        <Link to="/me/donations" className="text-white/90 text-base hover-text-accent transition font-bold">Quyên góp của tôi</Link>
                     </nav>
 
                     <div className="flex items-center gap-4">
-                        { /* Show different header items depending on authenticated user role */}
-                        {user && user.role !== 'donor' ? (
-                            <div className="flex items-center gap-3">
-                                <div className="relative">
-                                    <button onClick={() => setAvatarOpen((s) => !s)} className="hidden md:flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center text-white font-bold">
-                                            {user.avatar ? (
-                                                <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                (user.name || '?').charAt(0).toUpperCase()
-                                            )}
-                                        </div>
-                                        <div className="text-sm font-medium">{user.name}</div>
-                                    </button>
+                        {/* Right side: always show balance, user name and avatar (or placeholders) */}
+                        <div className="hidden md:flex items-center gap-3">
+                            <div className="relative">
+                                <button onClick={() => setAvatarOpen((s) => !s)} className="flex items-center gap-3">
+                                    <div className="h-10 w-10 rounded-full overflow-hidden bg-white/20 flex items-center justify-center text-white font-bold">
+                                        {user?.avatar ? (
+                                            <img src={user.avatar} alt={user.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            (user?.name || (account ? shortenAddress(account) : '?')).charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col items-start leading-tight">
+                                        <div className="text-sm font-medium">{user?.name || (account ? shortenAddress(account) : 'Khách')}</div>
+                                        <div className="text-xs text-white/80">T7: {Number(t7Balance || 0).toFixed(4)}</div>
+                                    </div>
+                                </button>
 
-                                    {avatarOpen && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg text-sm text-gray-800 overflow-hidden">
-                                            <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">Hồ sơ</Link>
-                                            <Link to="/campaigns/create" className="block px-4 py-2 hover:bg-gray-100">Tạo chiến dịch</Link>
-                                            <Link to="/me/campaigns" className="block px-4 py-2 hover:bg-gray-100">Chiến dịch của bạn</Link>
-                                            {user.role === 'admin' && (
-                                                <Link to="/admin/campaigns" className="block px-4 py-2 hover:bg-gray-100">Danh sách chiến dịch</Link>
-                                            )}
-                                            <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-100">Đăng xuất</button>
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={() => setOpen(!open)} className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-white/90 hover:bg-white/10">
-                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                                    </svg>
-                                </button>
+                                {avatarOpen && (
+                                    <div className="absolute right-0 mt-2 w-56 bg-white rounded shadow-lg text-sm text-gray-800 overflow-hidden">
+                                        {user ? (
+                                            <>
+                                                <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">Hồ sơ</Link>
+                                                <Link to="/campaigns/create" className="block px-4 py-2 hover:bg-gray-100">Tạo chiến dịch</Link>
+                                                <Link to="/me/campaigns" className="block px-4 py-2 hover:bg-gray-100">Chiến dịch của bạn</Link>
+                                                {user.role === 'admin' && (
+                                                    <Link to="/admin/campaigns" className="block px-4 py-2 hover:bg-gray-100">Danh sách chiến dịch</Link>
+                                                )}
+                                                <button onClick={handleLogout} className="w-full text-left px-4 py-2 hover:bg-gray-100">Đăng xuất</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                {account ? (
+                                                    <>
+                                                        <div className="px-4 py-2">{shortenAddress(account)}</div>
+                                                        <button onClick={handleDisconnect} className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600">Huỷ liên kết</button>
+                                                    </>
+                                                ) : (
+                                                    <button onClick={() => setModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-gray-100">Đăng nhập / Liên kết ví</button>
+                                                )}
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
-                        ) : account ? (
-                            <div className="flex items-center gap-3">
-                                <button onClick={handleDisconnect} className="hidden md:inline-block bg-white text-indigo-700 px-4 py-2 rounded-xl font-semibold shadow hover:scale-105 transition-transform">Huỷ liên kết</button>
-                                {user && user.role === 'admin' ? (
-                                    <button onClick={handleLogout} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl font-semibold">Đăng xuất admin</button>
-                                ) : null}
+                        </div>
 
-                                <div className="hidden md:flex items-center gap-3">
-                                    <div className="px-4 py-2 bg-white/10 text-white rounded-full text-sm font-semibold">{shortenAddress(account)}</div>
-                                    <div className="px-3 py-2 bg-white/20 text-white rounded-full text-sm font-semibold">T7: {Number(t7Balance || 0).toFixed(4)}</div>
-                                </div>
-                                <button onClick={() => setOpen(!open)} className="lg:hidden p-2 rounded-md text-white/90 hover:bg-white/10">
-                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="flex items-center gap-3">
-                                <button onClick={() => setModalOpen(true)} className="bg-white text-amber-700 px-4 py-2 rounded-xl font-semibold shadow hover:scale-105 transition-transform flex items-center gap-2">
-                                    <span className="inline-flex items-center gap-2">Tài khoản</span>
-                                </button>
-                                <button onClick={() => setOpen(!open)} className="lg:hidden p-2 rounded-md text-white/90 hover:bg-white/10">
-                                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        )}
+                        <button onClick={() => setOpen(!open)} className="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-white/90 hover:bg-white/10">
+                            <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
 
@@ -223,17 +215,18 @@ const Navbar = () => {
                     <div className="absolute inset-0 bg-black/50" onClick={() => setModalOpen(false)} />
                     <div className="relative bg-white rounded-lg max-w-md w-full mx-4 p-6 shadow-lg">
                         <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold">Tài khoản</h3>
+
                             <button onClick={() => setModalOpen(false)} className="text-gray-500 p-2 rounded hover:bg-gray-100" aria-label="Đóng">
                                 <X size={18} />
                             </button>
+                            <h3 className="text-lg font-semibold">Tài khoản</h3>
                         </div>
 
                         <div className="flex gap-2 mb-4">
-                            <button onClick={() => setAuthTab('login')} className={`flex-1 py-2 rounded flex items-center justify-center gap-2 ${authTab === 'login' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+                            <button onClick={() => setAuthTab('login')} className={`flex-1 py-2 rounded flex items-center justify-center gap-2 ${authTab === 'login' ? 'bg-primary text-white' : 'bg-gray-100'}`}>
                                 <User size={16} /> Đăng nhập
                             </button>
-                            <button onClick={() => setAuthTab('wallet')} className={`flex-1 py-2 rounded flex items-center justify-center gap-2 ${authTab === 'wallet' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>
+                            <button onClick={() => setAuthTab('wallet')} className={`flex-1 py-2 rounded flex items-center justify-center gap-2 ${authTab === 'wallet' ? 'bg-primary text-white' : 'bg-gray-100'}`}>
                                 <Wallet size={16} /> Liên kết ví
                             </button>
                         </div>
@@ -248,9 +241,9 @@ const Navbar = () => {
                                     <Lock size={18} className="text-gray-500" />
                                     <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Mật khẩu" className="w-full outline-none" />
                                 </div>
-                                <button disabled={submitting} className="bg-indigo-600 text-white py-2 rounded flex items-center justify-center gap-2">{submitting ? 'Đang...' : (<><Lock size={16} />Đăng nhập</>)}</button>
+                                <button disabled={submitting} className="bg-primary text-white py-2 rounded flex items-center justify-center gap-2">{submitting ? 'Đang...' : (<><Lock size={16} />Đăng nhập</>)}</button>
                                 <div className="text-sm text-gray-500">Dành cho tổ chức và admin.</div>
-                                <div className="text-sm text-gray-700">Chưa có tài khoản? <button type="button" onClick={() => setAuthTab('register')} className="text-indigo-600 font-medium">Đăng ký tại đây</button></div>
+                                <div className="text-sm text-gray-700">Chưa có tài khoản? <button type="button" onClick={() => setAuthTab('register')} className="text-primary font-medium">Đăng ký tại đây</button></div>
                             </form>
                         )}
 
@@ -268,7 +261,7 @@ const Navbar = () => {
                                     <Lock size={18} className="text-gray-500" />
                                     <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Mật khẩu" className="w-full outline-none" />
                                 </div>
-                                <button disabled={submitting} className="bg-indigo-600 text-white py-2 rounded flex items-center justify-center gap-2">{submitting ? 'Đang...' : (<><User size={16} />Đăng ký</>)}</button>
+                                <button disabled={submitting} className="bg-primary text-white py-2 rounded flex items-center justify-center gap-2">{submitting ? 'Đang...' : (<><User size={16} />Đăng ký</>)}</button>
                                 <div className="text-sm text-gray-500">Đăng ký cho người tạo chiến dịch (role sẽ là tổ chức).</div>
                             </form>
                         )}
