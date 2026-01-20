@@ -4,7 +4,6 @@ import { useWeb3Context } from '../../context/Web3Context';
 import { AuthContext } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import logo from '../../assets/logo.png';
-import logo_metamask from '../../assets/MetaMask_Fox.svg.png';
 import { authApi } from '../../services/api/authApi';
 import { User, Lock, Wallet, X } from 'lucide-react';
 

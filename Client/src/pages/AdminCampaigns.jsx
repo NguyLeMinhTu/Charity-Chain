@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../services/api/axiosClient';
 import toast from 'react-hot-toast';
+import { X } from 'lucide-react';
 
 const AdminCampaigns = () => {
     const [campaigns, setCampaigns] = useState([]);
@@ -132,7 +133,9 @@ const AdminCampaigns = () => {
                                                 <button onClick={() => handleEdit(c._id)} className="px-2 py-1 bg-blue-400 text-white rounded-md text-xs hover:opacity-95">Sửa</button>
                                                 <button onClick={() => handleDelete(c._id)} className="px-2 py-1 bg-red-400 text-white rounded-md text-xs hover:opacity-95">Xoá</button>
                                                 {c.approvalStatus !== 'rejected' && (
-                                                    <button onClick={() => setApproval(c._id, 'rejected')} className="px-2 py-1 bg-rose-400 text-white rounded-md text-xs hover:opacity-95">Từ chối</button>
+                                                    <button onClick={() => setApproval(c._id, 'rejected')} className="px-2 py-1 bg-rose-600 text-white rounded-md text-xs hover:opacity-95">
+                                                        <X className="inline-block size-4" />
+                                                    </button>
                                                 )}
                                             </div>
                                         </td>
