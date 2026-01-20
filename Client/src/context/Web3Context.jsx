@@ -3,6 +3,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { connectWallet, getWeb3Provider } from '../services/web3/web3Provider';
 import { getT7Balance } from '../services/web3/t7Token';
+import { AuthContext } from './AuthContext';
+import { ethers } from 'ethers';
 
 const Web3Context = createContext();
 
@@ -50,6 +52,36 @@ export const Web3Provider = ({ children }) => {
             })();
         }
     }, []);
+
+    // If user is logged in and has a linked walletAddress, but no connected wallet,
+    // try to fetch the T7 balance using a read-only provider (RPC URL) or window.ethereum.
+    const { user } = useContext(AuthContext);
+
+    useEffect(() => {
+        if (account || !user?.walletAddress) return;
+
+        (async () => {
+            try {
+                let provider;
+                try {
+                    provider = getWeb3Provider();
+                } catch (err) {
+                    const rpc = import.meta.env.VITE_RPC_URL;
+                    if (!rpc) {
+                        // no provider available to read balance
+                        return;
+                    }
+                    provider = new ethers.JsonRpcProvider(rpc);
+                }
+
+                const balance = await getT7Balance(provider, user.walletAddress);
+                setAccount(user.walletAddress);
+                setT7Balance(balance);
+            } catch (err) {
+                console.error('Failed to fetch linked wallet balance', err);
+            }
+        })();
+    }, [user]);
 
     const connect = async () => {
         setLoading(true);
