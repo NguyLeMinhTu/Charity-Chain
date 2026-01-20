@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../services/api/axiosClient';
 import toast from 'react-hot-toast';
-import { X } from 'lucide-react';
+import { CheckCheck, X } from 'lucide-react';
 
 const AdminCampaigns = () => {
     const [campaigns, setCampaigns] = useState([]);
@@ -128,7 +128,7 @@ const AdminCampaigns = () => {
                                         <td className="px-4 py-3 align-middle">
                                             <div className="flex items-center gap-2">
                                                 {c.approvalStatus === 'pending' && (
-                                                    <button onClick={() => setApproval(c._id, 'approved')} className="px-2 py-1 bg-green-600 text-white rounded-md text-xs hover:opacity-95">Phê duyệt</button>
+                                                    <button onClick={() => setApproval(c._id, 'approved')} className="px-2 py-1 bg-green-600 text-white rounded-md text-xs hover:opacity-95"><CheckCheck className='inline size-4' /></button>
                                                 )}
                                                 <button onClick={() => handleEdit(c._id)} className="px-2 py-1 bg-blue-400 text-white rounded-md text-xs hover:opacity-95">Sửa</button>
                                                 <button onClick={() => handleDelete(c._id)} className="px-2 py-1 bg-red-400 text-white rounded-md text-xs hover:opacity-95">Xoá</button>

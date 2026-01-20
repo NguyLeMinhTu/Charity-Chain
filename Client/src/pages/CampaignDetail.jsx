@@ -185,24 +185,6 @@ const CampaignDetail = () => {
                             </div>
                         </div>
 
-                        {/* Edit/Delete buttons for owner or admin */}
-                        {user && (user.role === 'admin' || (campaign.owner && campaign.owner._id === user._id)) && (
-                            <div className="flex gap-3 mt-4">
-                                <button onClick={() => setEditing(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Sửa chiến dịch</button>
-                                <button onClick={async () => {
-                                    if (!confirm('Bạn có chắc muốn xóa chiến dịch này?')) return;
-                                    try {
-                                        const token = localStorage.getItem('token');
-                                        await campaignApi.deleteCampaign(campaign._id);
-                                        toast.success('Đã xóa chiến dịch');
-                                        navigate('/campaigns');
-                                    } catch (err) {
-                                        toast.error(err.response?.data?.message || 'Lỗi khi xóa chiến dịch');
-                                    }
-                                }} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Xóa</button>
-                            </div>
-                        )}
-
                         {/* Edit form modal (simple inline) */}
                         {editing && (
                             <div className="mt-6 bg-white p-6 rounded shadow">
