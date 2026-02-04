@@ -1,9 +1,10 @@
-const Donation = require('../models/Donation');
-const Campaign = require('../models/Campaign');
+const Donation = require('../models/Donation'); // Model Donation
+const Campaign = require('../models/Campaign'); // Model Campaign
 
+// Tạo bản ghi quyên góp từ dữ liệu giao dịch on-chain/off-chain
 exports.createDonationRecord = async (req, res) => {
     try {
-        // accept either campaignId or campaign (client may send either)
+        // Chấp nhận campaignId hoặc campaign (client có thể gửi một trong hai)
         const body = req.body || {};
         const campaignId = body.campaignId || body.campaign;
         const { amount, txHash, blockNumber, chainId, donorWallet, tokenAddress, tokenSymbol } = body;
@@ -13,7 +14,7 @@ exports.createDonationRecord = async (req, res) => {
         const campaign = await Campaign.findById(campaignId);
         if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
 
-        // Server-side guards: reject donations to campaigns that have ended or already met their goal
+        // Ràng buộc phía server: từ chối quyên góp nếu chiến dịch đã kết thúc hoặc đạt mục tiêu
         const now = new Date();
         if (campaign.endDate && campaign.endDate < now) {
             return res.status(400).json({ message: 'Campaign has ended and is closed' });
@@ -24,10 +25,11 @@ exports.createDonationRecord = async (req, res) => {
             return res.status(400).json({ message: 'Campaign has already reached its funding goal' });
         }
 
+        // Tạo bản ghi quyên góp
         const donation = await Donation.create({
             campaign: campaignId,
-            donor: req.user ? req.user._id : undefined,
-            donorWallet: donorWallet || req.user?.walletAddress,
+            donor: req.user ? req.user._id : undefined, // nếu đã đăng nhập, gán người quyên góp
+            donorWallet: donorWallet || req.user?.walletAddress, // fallback sang ví của user
             amount,
             txHash,
             blockNumber,
@@ -36,13 +38,13 @@ exports.createDonationRecord = async (req, res) => {
             tokenSymbol
         });
 
-        // increment campaign.raisedAmount if amount is numeric and update status if goal reached
+        // Tăng raisedAmount của campaign nếu amount là số, và cập nhật trạng thái nếu đạt mục tiêu
         const inc = Number(amount || 0);
         if (!Number.isNaN(inc) && inc !== 0) {
             try {
-                // increment and return updated campaign doc
+                // Tăng raisedAmount và trả về bản ghi campaign cập nhật
                 const updated = await Campaign.findByIdAndUpdate(campaignId, { $inc: { raisedAmount: inc } }, { new: true });
-                // if goal reached or exceeded, mark as completed
+                // Nếu đạt hoặc vượt mục tiêu, đánh dấu completed
                 const updatedRaised = Number(updated.raisedAmount || 0);
                 const goalNum = Number(updated.goalAmount || 0);
                 if (goalNum > 0 && updatedRaised >= goalNum && updated.status !== 'completed') {
@@ -64,16 +66,18 @@ exports.createDonationRecord = async (req, res) => {
     }
 };
 
+// Lấy danh sách quyên góp theo campaignId (mới nhất trước)
 exports.getDonationsByCampaign = async (req, res) => {
     const donations = await Donation.find({ campaign: req.params.campaignId })
         .sort({ createdAt: -1 })
-        .populate('donor', 'name');
+        .populate('donor', 'name'); // Đính kèm tên người quyên góp
     res.json(donations);
 };
 
+// Lấy các quyên góp của người dùng hiện tại
 exports.getDonationsByUser = async (req, res) => {
     const donations = await Donation.find({ donor: req.user._id })
         .sort({ createdAt: -1 })
-        .populate('campaign', 'title');
+        .populate('campaign', 'title'); // Đính kèm tiêu đề chiến dịch
     res.json(donations);
 };

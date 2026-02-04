@@ -1,25 +1,26 @@
-const Campaign = require('../models/Campaign');
-const cloudinary = require('../config/cloudinary');
-const multer = require('multer');
-const { body, validationResult } = require('express-validator');
+const Campaign = require('../models/Campaign'); // Model Campaign (MongoDB)
+const cloudinary = require('../config/cloudinary'); // SDK Cloudinary đã cấu hình
+const multer = require('multer'); // Middleware upload file
+const { body, validationResult } = require('express-validator'); // Validator cho request
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.memoryStorage() }); // Lưu file upload vào bộ nhớ
 
 exports.createCampaign = [
-    upload.single('image'),
-    body('title').trim().isLength({ min: 1 }),
-    body('goalAmount').isNumeric().isFloat({ min: 0 }),
+    upload.single('image'), // Nhận một file ảnh từ field 'image'
+    body('title').trim().isLength({ min: 1 }), // Bắt buộc có tiêu đề
+    body('goalAmount').isNumeric().isFloat({ min: 0 }), // Mục tiêu là số, không âm
     async (req, res) => {
-        const errors = validationResult(req);
+        const errors = validationResult(req); // Thu thập lỗi từ validator
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
         try {
-            const { title, description, goalAmount, chainId, startDate, endDate } = req.body;
-            let imageUrl = null;
+            const { title, description, goalAmount, chainId, startDate, endDate } = req.body; // Lấy dữ liệu từ body
+            let imageUrl = null; // URL ảnh sau khi upload
 
             if (req.file) {
+                // Upload ảnh lên Cloudinary bằng stream
                 const result = await new Promise((resolve, reject) => {
                     const stream = cloudinary.uploader.upload_stream(
                         { folder: 'charity-campaigns' },
@@ -30,16 +31,16 @@ exports.createCampaign = [
                     );
                     stream.end(req.file.buffer);
                 });
-                imageUrl = result.secure_url;
+                imageUrl = result.secure_url; // Lưu URL ảnh an toàn (https)
             }
 
             const campaignData = {
                 title,
                 description,
                 imageUrl,
-                goalAmount: parseFloat(goalAmount),
+                goalAmount: parseFloat(goalAmount), // Chuẩn hóa goalAmount về số thực
                 chainId,
-                owner: req.user._id
+                owner: req.user._id // Chủ sở hữu là người gọi API
             };
 
             // If the creator is an org (not admin), set approvalStatus to 'pending'
@@ -50,25 +51,25 @@ exports.createCampaign = [
                 campaignData.approvalStatus = 'approved';
             }
 
-            if (startDate) campaignData.startDate = new Date(startDate);
-            if (endDate) campaignData.endDate = new Date(endDate);
+            if (startDate) campaignData.startDate = new Date(startDate); // Ngày bắt đầu (tùy chọn)
+            if (endDate) campaignData.endDate = new Date(endDate);       // Ngày kết thúc (tùy chọn)
 
             const campaign = await Campaign.create(campaignData);
-            res.status(201).json(campaign);
+            res.status(201).json(campaign); // Trả về campaign vừa tạo
         } catch (error) {
             res.status(500).json({ message: 'Error creating campaign', error: error.message });
         }
     }
 ];
 
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const jwt = require('jsonwebtoken'); // Dùng để xác thực token admin trong danh sách
+const User = require('../models/User'); // Model User để kiểm tra role
 
 exports.getCampaigns = async (req, res) => {
     try {
         // If request contains a valid admin token, return all campaigns (including pending)
-        const header = req.headers.authorization;
-        let isAdmin = false;
+        const header = req.headers.authorization; // Lấy token từ header
+        let isAdmin = false; // Cờ xác định có phải admin
         if (header && header.startsWith('Bearer ')) {
             try {
                 const token = header.split(' ')[1];
@@ -80,7 +81,7 @@ exports.getCampaigns = async (req, res) => {
             }
         }
 
-        let query = {};
+        let query = {}; // Mặc định: lấy tất cả (admin)
         if (!isAdmin) {
             // Include campaigns explicitly approved OR documents created before the approvalStatus
             // field existed (no approvalStatus field). This keeps backwards compatibility.
@@ -92,12 +93,12 @@ exports.getCampaigns = async (req, res) => {
             };
         }
 
-        const ownerFields = isAdmin ? 'name avatar walletAddress' : 'name avatar';
-        let campaigns = await Campaign.find(query).populate('owner', ownerFields);
+        const ownerFields = isAdmin ? 'name avatar walletAddress' : 'name avatar'; // Admin thấy thêm ví
+        let campaigns = await Campaign.find(query).populate('owner', ownerFields); // Lấy danh sách và populate owner
 
         // Enforce status based on endDate and raisedAmount (ensure DB reflects closed/completed states)
-        const now = new Date();
-        const updates = [];
+        const now = new Date(); // Thời điểm hiện tại
+        const updates = []; // Các cập nhật trạng thái cần thực hiện
         for (const c of campaigns) {
             try {
                 const goal = Number(c.goalAmount || 0);
@@ -119,15 +120,15 @@ exports.getCampaigns = async (req, res) => {
         if (updates.length) await Promise.all(updates);
 
         // re-query so returned docs reflect any status changes
-        campaigns = await Campaign.find(query).populate('owner', ownerFields);
-        res.json(campaigns);
+        campaigns = await Campaign.find(query).populate('owner', ownerFields); // Lấy lại dữ liệu sau khi cập nhật
+        res.json(campaigns); // Trả về danh sách chiến dịch
     } catch (err) {
         res.status(500).json({ message: 'Error fetching campaigns', error: err.message });
     }
 };
 
 exports.getCampaignById = async (req, res) => {
-    let campaign = await Campaign.findById(req.params.id).populate('owner', 'name avatar walletAddress');
+    let campaign = await Campaign.findById(req.params.id).populate('owner', 'name avatar walletAddress'); // Tìm theo id
     if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
 
     // enforce status based on endDate and raisedAmount
@@ -146,17 +147,17 @@ exports.getCampaignById = async (req, res) => {
             campaign.status = newStatus;
             await campaign.save();
             // re-populate owner after save
-            campaign = await Campaign.findById(req.params.id).populate('owner', 'name avatar walletAddress');
+            campaign = await Campaign.findById(req.params.id).populate('owner', 'name avatar walletAddress'); // Lấy lại sau khi save
         }
     } catch (e) {
         console.error('Failed to enforce campaign status for', req.params.id, e);
     }
 
-    res.json(campaign);
+    res.json(campaign); // Trả về chiến dịch
 };
 
 exports.updateCampaignStatus = async (req, res) => {
-    const { status } = req.body;
+    const { status } = req.body; // Trạng thái cần cập nhật
     const campaign = await Campaign.findOneAndUpdate(
         { _id: req.params.id, owner: req.user._id },
         { status },
@@ -165,7 +166,7 @@ exports.updateCampaignStatus = async (req, res) => {
     if (!campaign) {
         return res.status(404).json({ message: 'Campaign not found or not owner' });
     }
-    res.json(campaign);
+    res.json(campaign); // Trả về bản ghi đã cập nhật
 };
 
 // Admin endpoint to set approvalStatus
@@ -184,7 +185,7 @@ exports.setApprovalStatus = async (req, res) => {
             { new: true }
         ).populate('owner', 'name avatar');
         if (!campaign) return res.status(404).json({ message: 'Campaign not found' });
-        res.json(campaign);
+        res.json(campaign); // Trả về campaign với approvalStatus mới
     } catch (err) {
         res.status(500).json({ message: 'Error updating approval status', error: err.message });
     }
@@ -192,9 +193,9 @@ exports.setApprovalStatus = async (req, res) => {
 
 // Update campaign (owner or admin)
 exports.updateCampaign = [
-    upload.single('image'),
-    body('title').optional().trim().isLength({ min: 1 }),
-    body('goalAmount').optional().isNumeric().isFloat({ min: 0 }),
+    upload.single('image'), // Cho phép cập nhật ảnh đại diện chiến dịch
+    body('title').optional().trim().isLength({ min: 1 }), // Tiêu đề (tùy chọn)
+    body('goalAmount').optional().isNumeric().isFloat({ min: 0 }), // Mục tiêu (tùy chọn)
     async (req, res) => {
         try {
             console.debug('[updateCampaign] params.id=', req.params.id, 'user=', req.user && req.user._id);
@@ -236,7 +237,7 @@ exports.updateCampaign = [
             }
 
             const updated = await campaign.save();
-            res.json(updated);
+            res.json(updated); // Trả về campaign sau khi cập nhật
         } catch (err) {
             res.status(500).json({ message: 'Error updating campaign', error: err.message });
         }
@@ -261,7 +262,7 @@ exports.deleteCampaign = async (req, res) => {
 
         await Campaign.findByIdAndDelete(req.params.id);
         console.debug('[deleteCampaign] deleted campaign id=', req.params.id);
-        res.json({ message: 'Campaign deleted' });
+        res.json({ message: 'Campaign deleted' }); // Xác nhận đã xóa
     } catch (err) {
         console.error('[deleteCampaign] error', err);
         res.status(500).json({ message: 'Error deleting campaign', error: err.message });

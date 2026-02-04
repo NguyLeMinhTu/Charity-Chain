@@ -1,35 +1,39 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const { body, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken'); // JWT để tạo/giải mã token
+const User = require('../models/User'); // Model User
+const { body, validationResult } = require('express-validator'); // Validator
 
+// Tạo JWT với thời hạn 7 ngày
 const generateToken = (userId) =>
     jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
+// Đăng ký tài khoản mới
 exports.register = [
-    body('email').isEmail().normalizeEmail(),
-    body('password').isLength({ min: 6 }),
-    body('name').trim().isLength({ min: 1 }),
+    body('email').isEmail().normalizeEmail(), // Email hợp lệ và chuẩn hóa
+    body('password').isLength({ min: 6 }),    // Mật khẩu tối thiểu 6 ký tự
+    body('name').trim().isLength({ min: 1 }), // Tên không rỗng
     async (req, res) => {
-        const errors = validationResult(req);
+        const errors = validationResult(req); // Kiểm tra lỗi
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array() });
         }
 
-        const { email, password, name, walletAddress, role, avatar } = req.body;
-        const exists = await User.findOne({ email });
+        const { email, password, name, walletAddress, role, avatar } = req.body; // Lấy dữ liệu
+        const exists = await User.findOne({ email }); // Kiểm tra trùng email
         if (exists) return res.status(400).json({ message: 'Email already used' });
 
-        const user = await User.create({ email, password, name, walletAddress, role, avatar });
-        const token = generateToken(user._id);
+        const user = await User.create({ email, password, name, walletAddress, role, avatar }); // Tạo user mới
+        const token = generateToken(user._id); // Tạo token đăng nhập
         res.status(201).json({
             token,
-            user: { id: user._id, email, name, role, walletAddress, avatar }
+            user: { id: user._id, email, name, role, walletAddress, avatar } // Trả về thông tin cơ bản
         });
     }
 ];
+
+// Đăng nhập
 exports.login = [
-    body('email').isEmail().normalizeEmail(),
-    body('password').exists(),
+    body('email').isEmail().normalizeEmail(), // Email hợp lệ
+    body('password').exists(),                // Có mật khẩu
     async (req, res) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -37,11 +41,11 @@ exports.login = [
         }
 
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }); // Tìm user theo email
         if (!user || !(await user.comparePassword(password))) {
-            return res.status(400).json({ message: 'Invalid credentials' });
+            return res.status(400).json({ message: 'Invalid credentials' }); // Sai email/mật khẩu
         }
-        const token = generateToken(user._id);
+        const token = generateToken(user._id); // Tạo token
         res.json({
             token,
             user: {
@@ -56,12 +60,14 @@ exports.login = [
     }
 ];
 
+// Trả về thông tin user hiện tại (đã xác thực)
 exports.me = async (req, res) => {
     res.json({ user: req.user });
 };
 
-const cloudinary = require('../config/cloudinary');
+const cloudinary = require('../config/cloudinary'); // SDK Cloudinary
 
+// Cập nhật avatar của user (upload lên Cloudinary)
 exports.updateAvatar = async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
@@ -74,7 +80,7 @@ exports.updateAvatar = async (req, res) => {
             stream.end(req.file.buffer);
         });
 
-        // req.user is set by auth middleware
+        // req.user được set bởi auth middleware
         req.user.avatar = result.secure_url;
         await req.user.save();
 
@@ -84,6 +90,7 @@ exports.updateAvatar = async (req, res) => {
     }
 };
 
+// Liên kết địa chỉ ví blockchain vào tài khoản
 exports.linkWallet = async (req, res) => {
     try {
         const { walletAddress } = req.body;
@@ -96,6 +103,7 @@ exports.linkWallet = async (req, res) => {
     }
 };
 
+// Bỏ liên kết ví blockchain
 exports.unlinkWallet = async (req, res) => {
     try {
         req.user.walletAddress = null;
@@ -106,12 +114,12 @@ exports.unlinkWallet = async (req, res) => {
     }
 };
 
-// Update profile (name, email, password, walletAddress)
+// Cập nhật hồ sơ (name, email, password, walletAddress)
 exports.updateProfile = async (req, res) => {
     try {
         const { name, email, password, walletAddress } = req.body;
 
-        // If email changed, ensure uniqueness
+        // Nếu đổi email, kiểm tra không bị trùng
         if (email && email !== req.user.email) {
             const exists = await User.findOne({ email });
             if (exists) return res.status(400).json({ message: 'Email already used' });
@@ -122,11 +130,11 @@ exports.updateProfile = async (req, res) => {
         if (typeof walletAddress !== 'undefined') req.user.walletAddress = walletAddress || null;
         if (password) {
             if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters' });
-            req.user.password = password; // will be hashed by pre-save hook
+            req.user.password = password; // sẽ được băm bởi pre-save hook
         }
 
         await req.user.save();
-        // return sanitized user
+        // Trả về user đã loại bỏ password
         const user = await User.findById(req.user._id).select('-password');
         res.json({ user });
     } catch (err) {

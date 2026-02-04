@@ -74,11 +74,21 @@ const MyDonations = () => {
                                 <div className="text-2xl font-bold text-green-600">{donation.amount} T7</div>
                                 <div className="flex gap-2">
                                     {donation.txHash && (
-                                        <button onClick={() => copyTx(donation.txHash)} className="inline-flex items-center gap-2 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-xs">
-                                            <Copy className="w-4 h-4" /> Sao chép
-                                        </button>
+                                        <>
+                                            <button onClick={() => copyTx(donation.txHash)} className="inline-flex items-center gap-2 px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded-md text-xs">
+                                                <Copy className="w-4 h-4" /> Sao chép
+                                            </button>
+                                            <a
+                                                href={`https://explorer.cronos.org/testnet/tx/${donation.txHash}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs"
+                                            >
+                                                Xem giao dịch
+                                            </a>
+                                        </>
                                     )}
-                                    <button className="px-2 py-1 bg-primary text-white rounded-md text-xs">Chi tiết</button>
+
                                 </div>
                             </div>
                         </div>

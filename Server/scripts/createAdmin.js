@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// createAdmin.js - Script để tạo người dùng quản trị mới trong hệ thống.
-// Sử dụng: node scripts/createAdmin.js --email <email> --password <password> [--name <name>]
+// createAdmin.js - Tạo người dùng quản trị mới trong hệ thống.
+// Cách dùng: node scripts/createAdmin.js --email <email> --password <password> [--name <name>]
 
 require('dotenv').config();
 const mongoose = require('mongoose');
